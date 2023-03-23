@@ -4,9 +4,9 @@ use std::collections::HashMap;
 use super::client::Kucoin;
 use super::error::APIError;
 use super::model::user::{
-    AccountHolds, AccountId, AccountInfo, AccountType, Accounts, DepositAddress, DepositList,
-    DepositListV1, OrderId, SingleAccount, SubAccountBalances, TransferableBalance, UserInfo,
-    WithdrawalId, WithdrawalList, WithdrawalListV1, WithdrawalQuotas,
+    AccountHolds, AccountId, AccountInfo, AccountType, AccountOverview, Accounts, DepositAddress,
+    DepositList, DepositListV1, OrderId, SingleAccount, SubAccountBalances, TransferableBalance,
+    UserInfo, WithdrawalId, WithdrawalList, WithdrawalListV1, WithdrawalQuotas,
 };
 use super::model::{APIData, APIDatum, Method, Pagination};
 use super::utils::format_query;
@@ -534,5 +534,32 @@ impl Kucoin {
         let resp = self.delete(url, Some(headers)).await?;
         let api_data = resp.text().await?;
         Ok(api_data)
+    }
+
+    pub async fn get_account_overview(
+        &self,
+        currency: Option<&str>,
+    ) -> Result<APIDatum<AccountOverview>, APIError> {
+        let mut params: HashMap<String, String> = HashMap::new();
+        let headers: header::HeaderMap;
+        let url: String;
+        let endpoint = String::from("/api/v1/account-overview");
+        if let Some(c) = currency {
+            params.insert("currency".to_string(), c.to_owned());
+        }
+        if !params.is_empty() {
+            let query = format_query(&params);
+            url = format!("{}{}{}", &self.prefix, endpoint, query);
+            headers = self
+                .sign_headers(endpoint, None, Some(query), Method::GET)
+                .unwrap();
+        } else {
+            url = format!("{}{}", &self.prefix, endpoint);
+            headers = self
+                .sign_headers(endpoint, None, None, Method::GET)
+                .unwrap();
+        }
+        let resp = self.get(url, Some(headers)).await?.json().await?;
+        Ok(resp)
     }
 }

@@ -5,8 +5,8 @@ use reqwest::header;
 use super::client::Kucoin;
 use super::error::APIError;
 use super::model::market::{
-    AllTickers, Chain, Currency, DailyStats, Klines, OrderBook, AtomicOrderBook, OrderBookType, SymbolList, Ticker,
-    TradeHistories
+    AllTickers, Chain, Contract, Currency, DailyStats, Klines, OrderBook, AtomicOrderBook,
+    OrderBookType, SymbolList, Ticker, TradeHistories
 };
 use super::model::{APIData, APIDatum, Method};
 use super::utils::format_query;
@@ -189,6 +189,17 @@ impl Kucoin {
 
     pub async fn get_server_time(&self) -> Result<APIDatum<i64>, APIError> {
         let endpoint = String::from("/api/v1/timestamp");
+        let url = format!("{}{}", &self.prefix, endpoint);
+        let resp = self.get(url, None).await?.json().await?;
+        Ok(resp)
+    }
+
+    pub async fn get_contract(
+        &self,
+        symbol: Option<&str>,
+    ) -> Result<APIDatum<Contract>, APIError> {
+        let url: String;
+        let endpoint = format!("/api/v1/contracts/{}", symbol.unwrap_or(""));
         let url = format!("{}{}", &self.prefix, endpoint);
         let resp = self.get(url, None).await?.json().await?;
         Ok(resp)

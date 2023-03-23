@@ -5,6 +5,7 @@ use super::client::Kucoin;
 use super::error::APIError;
 use super::model::trade::{
     CancelByClientOidResp, CancelResp, FillsInfo, HistoricalOrder, OrderInfo, OrderResp,
+    MarginOrder, Position
 };
 use super::model::{APIData, APIDatum, Method, Pagination};
 use super::utils::format_query;
@@ -319,6 +320,112 @@ impl Kucoin {
 
     pub async fn get_recent_fills(&self) -> Result<APIData<FillsInfo>, APIError> {
         let endpoint = String::from("/api/v1/limit/fills");
+        let url = format!("{}{}", &self.prefix, endpoint);
+        let headers = self
+            .sign_headers(endpoint, None, None, Method::GET)
+            .unwrap();
+        let resp = self.get(url, Some(headers)).await?.json().await?;
+        Ok(resp)
+    }
+
+    // *** Futures ***
+
+    // Creates a limit order with margin
+    pub async fn post_limit_margin_order(
+        &self,
+        client_oid: &str,
+        side: &str,
+        symbol: &str,
+        leverage: u8,
+        price: f64,
+        size: f64,
+    ) -> Result<APIDatum<OrderResp>, APIError> {
+        let endpoint = String::from("/api/v1/orders");
+        let url = format!("{}{}", &self.prefix, endpoint);
+        let mut params: HashMap<String, String> = HashMap::new();
+        params.insert(String::from("clientOid"), client_oid.to_string());
+        params.insert(String::from("side"), side.to_string());
+        params.insert(String::from("symbol"), symbol.to_string());
+        params.insert(String::from("leverage"), leverage.to_string());
+        params.insert(String::from("price"), price.to_string());
+        params.insert(String::from("size"), size.to_string());
+        let headers = self
+            .sign_headers(endpoint, Some(&params), None, Method::POST)
+            .unwrap();
+        let resp = self
+            .post(url, Some(headers), Some(params))
+            .await?
+            .json()
+            .await?;
+        Ok(resp)
+    }
+
+    // Creates a TP/SL margin order
+    pub async fn post_tp_sl_margin_order(
+        &self,
+        client_oid: &str,
+        side: &str,
+        symbol: &str,
+        r#type: &str,
+        leverage: u8,
+        stop: &str,
+        stop_price_type: &str,
+        stop_price: f64,
+        reduce_only: bool,
+        close_order: bool,
+        price: Option<f64>,
+        size: f64,
+    ) -> Result<APIDatum<OrderResp>, APIError> {
+        let endpoint = String::from("/api/v1/orders");
+        let url = format!("{}{}", &self.prefix, endpoint);
+        let mut params: HashMap<String, String> = HashMap::new();
+        params.insert(String::from("clientOid"), client_oid.to_string());
+        params.insert(String::from("side"), side.to_string());
+        params.insert(String::from("symbol"), symbol.to_string());
+        params.insert(String::from("type"), r#type.to_string());
+        params.insert(String::from("leverage"), leverage.to_string());
+        params.insert(String::from("stop"), stop.to_string());
+        params.insert(String::from("stopPriceType"), stop_price_type.to_string());
+        params.insert(String::from("stopPrice"), stop_price.to_string());
+        params.insert(String::from("reduceOnly"), reduce_only.to_string());
+        params.insert(String::from("closeOrder"), close_order.to_string());
+        if let Some(p) = price {
+            params.insert(String::from("price"), p.to_string());
+        }
+        params.insert(String::from("size"), size.to_string());
+        let headers = self
+            .sign_headers(endpoint, Some(&params), None, Method::POST)
+            .unwrap();
+        let resp = self
+            .post(url, Some(headers), Some(params))
+            .await?
+            .json()
+            .await?;
+        Ok(resp)
+    }
+
+    pub async fn cancel_margin_order(&self, order_id: &str) -> Result<APIDatum<CancelResp>, APIError> {
+        let endpoint = format!("/api/v1/orders/{}", order_id);
+        let url = format!("{}{}", &self.prefix, endpoint);
+        let headers: header::HeaderMap = self
+            .sign_headers(endpoint, None, None, Method::DELETE)
+            .unwrap();
+        let resp = self.delete(url, Some(headers)).await?.json().await?;
+        Ok(resp)
+    }
+
+    pub async fn get_margin_order(&self, order_id: &str) -> Result<APIDatum<MarginOrder>, APIError> {
+        let endpoint = format!("/api/v1/orders/{}", order_id);
+        let url = format!("{}{}", &self.prefix, endpoint);
+        let headers: header::HeaderMap = self
+            .sign_headers(endpoint, None, None, Method::GET)
+            .unwrap();
+        let resp = self.get(url, Some(headers)).await?.json().await?;
+        Ok(resp)
+    }
+
+    pub async fn get_positions(&self) -> Result<APIData<Position>, APIError> {
+        let endpoint = String::from("/api/v1/positions");
         let url = format!("{}{}", &self.prefix, endpoint);
         let headers = self
             .sign_headers(endpoint, None, None, Method::GET)
@@ -863,3 +970,4 @@ mod test {
         assert_eq!(options, build_options)
     }
 }
+

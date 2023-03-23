@@ -187,3 +187,17 @@ pub struct WithdrawalQuotas {
 pub struct WithdrawalId {
     withdrawal_id: String,
 }
+
+#[derive(Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AccountOverview {
+    pub account_equity: f64,
+    #[serde(rename = "unrealisedPNL")]
+    pub unrealised_pnl: f64,
+    pub margin_balance: f64,
+    pub position_margin: f64,
+    pub order_margin: f64,
+    pub frozen_funds: f64,
+    pub available_balance: f64,
+    pub currency: String,
+}

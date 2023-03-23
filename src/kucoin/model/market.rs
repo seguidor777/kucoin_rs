@@ -7,6 +7,7 @@ pub struct SymbolList {
     pub quote_currency: String,
     pub base_min_size: String,
     pub base_max_size: String,
+    pub quote_min_size: String,
     pub quote_max_size: String,
     pub base_increment: String,
     pub quote_increment: String,
@@ -181,4 +182,12 @@ pub enum Fiat {
     SEK,
     NZD,
     UAH,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Contract {
+    pub lot_size: f64,
+    pub tick_size: f64,
+    pub multiplier: f64
 }

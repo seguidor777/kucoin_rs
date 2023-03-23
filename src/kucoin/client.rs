@@ -36,13 +36,13 @@ impl Credentials {
 #[derive(Debug, Clone)]
 pub enum KucoinEnv {
     Live,
+    LiveFutures,
     Sandbox,
 }
 
 #[derive(Debug, Clone)]
 pub struct Kucoin {
     credentials: Option<Credentials>,
-    environment: KucoinEnv,
     pub prefix: String,
     pub client: reqwest::Client,
 }
@@ -58,11 +58,11 @@ impl Kucoin {
             .build()?;
         let prefix = match environment {
             KucoinEnv::Live => String::from("https://api.kucoin.com"),
+            KucoinEnv::LiveFutures => String::from("https://api-futures.kucoin.com"),
             KucoinEnv::Sandbox => String::from("https://openapi-sandbox.kucoin.com"),
         };
         Ok(Kucoin {
             credentials,
-            environment,
             prefix,
             client,
         })
