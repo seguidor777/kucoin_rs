@@ -330,47 +330,17 @@ impl Kucoin {
 
     // *** Futures ***
 
-    // Creates a limit order with margin
-    pub async fn post_limit_margin_order(
+    // Creates a custom margin order
+    pub async fn post_margin_order(
         &self,
         client_oid: &str,
         side: &str,
         symbol: &str,
+        r#type: Option<&str>,
         leverage: u8,
-        price: f64,
-        size: f64,
-    ) -> Result<APIDatum<OrderResp>, APIError> {
-        let endpoint = String::from("/api/v1/orders");
-        let url = format!("{}{}", &self.prefix, endpoint);
-        let mut params: HashMap<String, String> = HashMap::new();
-        params.insert(String::from("clientOid"), client_oid.to_string());
-        params.insert(String::from("side"), side.to_string());
-        params.insert(String::from("symbol"), symbol.to_string());
-        params.insert(String::from("leverage"), leverage.to_string());
-        params.insert(String::from("price"), price.to_string());
-        params.insert(String::from("size"), size.to_string());
-        let headers = self
-            .sign_headers(endpoint, Some(&params), None, Method::POST)
-            .unwrap();
-        let resp = self
-            .post(url, Some(headers), Some(params))
-            .await?
-            .json()
-            .await?;
-        Ok(resp)
-    }
-
-    // Creates a TP/SL margin order
-    pub async fn post_tp_sl_margin_order(
-        &self,
-        client_oid: &str,
-        side: &str,
-        symbol: &str,
-        r#type: &str,
-        leverage: u8,
-        stop: &str,
-        stop_price_type: &str,
-        stop_price: f64,
+        stop: Option<&str>,
+        stop_price_type: Option<&str>,
+        stop_price: Option<f64>,
         reduce_only: bool,
         close_order: bool,
         price: Option<f64>,
@@ -382,11 +352,19 @@ impl Kucoin {
         params.insert(String::from("clientOid"), client_oid.to_string());
         params.insert(String::from("side"), side.to_string());
         params.insert(String::from("symbol"), symbol.to_string());
-        params.insert(String::from("type"), r#type.to_string());
+        if let Some(t) = r#type {
+            params.insert(String::from("type"), t.to_string());
+        }
         params.insert(String::from("leverage"), leverage.to_string());
-        params.insert(String::from("stop"), stop.to_string());
-        params.insert(String::from("stopPriceType"), stop_price_type.to_string());
-        params.insert(String::from("stopPrice"), stop_price.to_string());
+        if let Some(s) = stop {
+            params.insert(String::from("stop"), s.to_string());
+        }
+        if let Some(s) = stop_price_type {
+            params.insert(String::from("stopPriceType"), s.to_string());
+        }
+        if let Some(s) = stop_price {
+            params.insert(String::from("stopPrice"), s.to_string());
+        }
         params.insert(String::from("reduceOnly"), reduce_only.to_string());
         params.insert(String::from("closeOrder"), close_order.to_string());
         if let Some(p) = price {
@@ -410,6 +388,30 @@ impl Kucoin {
         let headers: header::HeaderMap = self
             .sign_headers(endpoint, None, None, Method::DELETE)
             .unwrap();
+        let resp = self.delete(url, Some(headers)).await?.json().await?;
+        Ok(resp)
+    }
+
+    pub async fn cancel_stop_margin_orders(&self, symbol: Option<&str>) -> Result<APIDatum<CancelResp>, APIError> {
+        let endpoint = String::from("/api/v1/stopOrders");
+        let url: String;
+        let headers: header::HeaderMap;
+        let mut params: HashMap<String, String> = HashMap::new();
+        if let Some(s) = symbol {
+            params.insert("symbol".to_string(), s.to_string());
+        };
+        if !params.is_empty() {
+            let query = format_query(&params);
+            url = format!("{}{}{}", &self.prefix, endpoint, query);
+            headers = self
+                .sign_headers(endpoint, None, Some(query), Method::DELETE)
+                .unwrap();
+        } else {
+            url = format!("{}{}", &self.prefix, endpoint);
+            headers = self
+                .sign_headers(endpoint, None, None, Method::DELETE)
+                .unwrap();
+        }
         let resp = self.delete(url, Some(headers)).await?.json().await?;
         Ok(resp)
     }

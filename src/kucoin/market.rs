@@ -198,7 +198,6 @@ impl Kucoin {
         &self,
         symbol: Option<&str>,
     ) -> Result<APIDatum<Contract>, APIError> {
-        let url: String;
         let endpoint = format!("/api/v1/contracts/{}", symbol.unwrap_or(""));
         let url = format!("{}{}", &self.prefix, endpoint);
         let resp = self.get(url, None).await?.json().await?;
